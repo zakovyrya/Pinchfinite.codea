@@ -2,13 +2,13 @@
 
 function setup()
     displayMode(OVERLAY)
-    parameter.number("s", 0, 2, 0.8)
+    parameter.number("s", 0, 2, 1)
+    parameter.number("r", -360, 360, 0)
     parameter.integer("x", -500, 500, 0)
     parameter.integer("y", -500, 500, 0)
-    parameter.watch("totalScale")
-    parameter.watch("totalTrans")
     
     scales = {}
+    rotations = {}
     touches = {}
     col = nil
 end
@@ -17,6 +17,7 @@ function draw()
     background(40, 40, 50)
     totalScale = 1
     totalTrans = vec2(0, 0)
+    totalRotation = 0
     
     -- Current translation
     translate(x, y)
@@ -25,12 +26,14 @@ function draw()
         -- Apply all zooms
         translate(touch[2].x, touch[2].y)
         scale(scales[i])
+        rotate(rotations[i])
         translate(-touch[2].x, -touch[2].y)
         
         -- Calculate total scaling and translation
         totalScale = totalScale * scales[i]
         totalTrans.x = totalTrans.x + touch[2].x
         totalTrans.y = totalTrans.y + touch[2].y
+        totalRotation = totalRotation + rotations[i]
     end
     
     -- Calculate average translation
@@ -54,7 +57,7 @@ end
 
 function touched(touch)
     local t = vec2(touch.x, touch.y)
-    
+
     -- Reposition new touch based on all previous zooms (+translate, scale -translate)    
     for i, touch in ipairs(touches) do
         t.x = (touch[2].x) + ((t.x - touch[2].x) / scales[i])
@@ -64,6 +67,14 @@ function touched(touch)
     -- Reposition new touch based on current translate values (...that have been scaled)
     t.x = t.x - (x / totalScale)
     t.y = t.y - (y / totalScale)
+
+    -- Reposition new touch based on all previous rotations
+    for i, touch in ipairs(touches) do
+        local radius = vec2(touch[2].x - t.x, touch[2].y - t.y)
+
+        t.x = touch[2].x - ((math.cos(math.rad(rotations[i])) * radius.x) + (math.sin(math.rad(rotations[i])) * radius.y))
+        t.y = touch[2].y - ((math.cos(math.rad(rotations[i])) * radius.y) - (math.sin(math.rad(rotations[i])) * radius.x))
+    end
     
     if touch.state == BEGAN or touch.state == MOVING then        
         moving = vec2(t.x, t.y)
@@ -74,6 +85,7 @@ function touched(touch)
     elseif touch.state == ENDED then
         table.insert(touches, {col, vec2(t.x, t.y)})        
         table.insert(scales, s)
+        table.insert(rotations, r)
         
         moving = nil
         col = nil
