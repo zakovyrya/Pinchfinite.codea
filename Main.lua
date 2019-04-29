@@ -3,7 +3,7 @@
 function setup()
     displayMode(OVERLAY)
     parameter.number("s", 0, 2, 1)
-    parameter.number("r", -360, 360, 0)
+    parameter.number("r", -360, 360, 90)
     parameter.integer("x", -500, 500, 0)
     parameter.integer("y", -500, 500, 0)
     
@@ -57,23 +57,21 @@ end
 
 function touched(touch)
     local t = vec2(touch.x, touch.y)
-
-    -- Reposition new touch based on all previous zooms (+translate, scale -translate)    
-    for i, touch in ipairs(touches) do
-        t.x = (touch[2].x) + ((t.x - touch[2].x) / scales[i])
-        t.y = (touch[2].y) + ((t.y - touch[2].y) / scales[i])
-    end
     
     -- Reposition new touch based on current translate values (...that have been scaled)
-    t.x = t.x - (x / totalScale)
-    t.y = t.y - (y / totalScale)
+    t.x = t.x - x
+    t.y = t.y - y
 
-    -- Reposition new touch based on all previous rotations
     for i, touch in ipairs(touches) do
+        -- Reposition new touch based on all previous rotations
         local radius = vec2(touch[2].x - t.x, touch[2].y - t.y)
 
         t.x = touch[2].x - ((math.cos(math.rad(rotations[i])) * radius.x) + (math.sin(math.rad(rotations[i])) * radius.y))
         t.y = touch[2].y - ((math.cos(math.rad(rotations[i])) * radius.y) - (math.sin(math.rad(rotations[i])) * radius.x))
+        
+        -- Reposition new touch based on all previous zooms (+translate, scale -translate)    
+        t.x = (touch[2].x) + ((t.x - touch[2].x) / scales[i])
+        t.y = (touch[2].y) + ((t.y - touch[2].y) / scales[i])
     end
     
     if touch.state == BEGAN or touch.state == MOVING then        
