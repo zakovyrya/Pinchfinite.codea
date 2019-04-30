@@ -3,39 +3,27 @@
 function setup()
     displayMode(OVERLAY)
     parameter.number("s", 0, 2, 1)
-    parameter.number("r", -360, 360, 90)
-    parameter.integer("x", -500, 500, 0)
-    parameter.integer("y", -500, 500, 0)
+    parameter.number("r", -360, 360, 0)
+    parameter.integer("x", -500, 500, 0, function() Zoom.translation = vec2(x, Zoom.translation.y) end)
+    parameter.integer("y", -500, 500, 0, function() Zoom.translation = vec2(Zoom.translation.x, y) end)
     
-    scales = {}
-    rotations = {}
-    touches = {}
-    col = nil
+    colors = {}
 end
 
 function draw()
     background(40, 40, 50)
     
-    -- Current translation
-    translate(x, y)
-    
-    for i, touch in ipairs(touches) do
-        -- Apply all zooms
-        translate(touch[2].x, touch[2].y)
-        scale(scales[i])
-        rotate(rotations[i])
-        translate(-touch[2].x, -touch[2].y)
-    end
+    Zoom.draw()
     
     -- Draw touch 
-    for i, touch in ipairs(touches) do
-        fill(touch[1] or 255)
-        ellipse(touch[2].x, touch[2].y, 50)
+    for i, point in ipairs(Zoom.transformPoints) do
+        fill(colors[i])
+        ellipse(point.world.x, point.world.y, 50)
     end
     
     -- Moving touch (already transformed from screen to world), before being stored
     if moving then
-        fill(col)
+        fill(colors[#colors])
         ellipse(moving.x, moving.y, 50)
     end
 end
@@ -43,32 +31,16 @@ end
 function touched(touch)
     local t = vec2(touch.x, touch.y)
     
-    -- Reposition new touch based on current translate values
-    t.x = t.x - x
-    t.y = t.y - y
-
-    for i, touch in ipairs(touches) do
-        -- Reposition new touch based on all previous rotations
-        local radius = vec2(touch[2].x - t.x, touch[2].y - t.y)
-
-        t.x = touch[2].x - ((math.cos(math.rad(rotations[i])) * radius.x) + (math.sin(math.rad(rotations[i])) * radius.y))
-        t.y = touch[2].y - ((math.cos(math.rad(rotations[i])) * radius.y) - (math.sin(math.rad(rotations[i])) * radius.x))
-        
-        -- Reposition new touch based on all previous zooms (+translate, scale -translate)    
-        t.x = (touch[2].x) + ((t.x - touch[2].x) / scales[i])
-        t.y = (touch[2].y) + ((t.y - touch[2].y) / scales[i])
-    end
+    t = Zoom.screenToWorld(t)
     
     if touch.state == BEGAN or touch.state == MOVING then        
-        moving = vec2(t.x, t.y)
-        
+        moving = t
         if col == nil then
-            col = color(math.random(0, 255), math.random(0, 255), math.random(0, 255))
+            table.insert(colors, color(math.random(0, 255), math.random(0, 255), math.random(0, 255)))
+            col = true
         end
     elseif touch.state == ENDED then
-        table.insert(touches, {col, vec2(t.x, t.y)})        
-        table.insert(scales, s)
-        table.insert(rotations, r)
+        TransformPoint(r, s, t)
         
         moving = nil
         col = nil
