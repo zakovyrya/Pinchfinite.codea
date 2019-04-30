@@ -15,9 +15,6 @@ end
 
 function draw()
     background(40, 40, 50)
-    totalScale = 1
-    totalTrans = vec2(0, 0)
-    totalRotation = 0
     
     -- Current translation
     translate(x, y)
@@ -28,18 +25,6 @@ function draw()
         scale(scales[i])
         rotate(rotations[i])
         translate(-touch[2].x, -touch[2].y)
-        
-        -- Calculate total scaling and translation
-        totalScale = totalScale * scales[i]
-        totalTrans.x = totalTrans.x + touch[2].x
-        totalTrans.y = totalTrans.y + touch[2].y
-        totalRotation = totalRotation + rotations[i]
-    end
-    
-    -- Calculate average translation
-    if #touches > 0 then
-        totalTrans.x = totalTrans.x / #touches
-        totalTrans.y = totalTrans.y / #touches
     end
     
     -- Draw touch 
@@ -58,7 +43,7 @@ end
 function touched(touch)
     local t = vec2(touch.x, touch.y)
     
-    -- Reposition new touch based on current translate values (...that have been scaled)
+    -- Reposition new touch based on current translate values
     t.x = t.x - x
     t.y = t.y - y
 
