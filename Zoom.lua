@@ -3,6 +3,8 @@ Zoom = {}
 Zoom.transformPoints = {}
 Zoom.translation = vec2(0, 0)
 
+
+-- Returns a table representing one point of view transformation
 function TransformPoint(r, s, w)
     table.insert(Zoom.transformPoints, {
         rotate = r,
