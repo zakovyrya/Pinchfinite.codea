@@ -1,20 +1,45 @@
 Zoom = {}
 
+Zoom.currentTransform = nil
+Zoom.prevPinchDistance = nil
+Zoom.pinchDelta = 0
+Zoom.pinchDistance = nil
+Zoom.rotatePoint = nil
 Zoom.transformPoints = {}
 Zoom.translation = vec2(0, 0)
 
 
 -- Returns a table representing one point of view transformation
 function TransformPoint(r, s, w)
-    table.insert(Zoom.transformPoints, {
+    return {
         rotate = r,
         scale = s,
         world = w
-    })
+    }
+end
+
+function Zoom.currentRotation()
+    local totalRotation = 0
+    
+    for i, point in ipairs(Zoom.transformPoints) do
+        totalRotation = totalRotation + point.rotate
+    end
+    
+    return totalRotation
+end
+
+function Zoom.currentScale()
+    local totalScale = 1
+    
+    for i, point in ipairs(Zoom.transformPoints) do
+        totalScale = totalScale * point.scale
+    end
+    
+    return totalScale
 end
 
 -- Transform view, given all transform points
-function Zoom.draw()
+function Zoom.draw(current)
     translate(Zoom.translation.x or 0, Zoom.translation.y or 0)
     
     for i, point in ipairs(Zoom.transformPoints) do
@@ -24,6 +49,15 @@ function Zoom.draw()
         rotate(point.rotate)
         
         translate(-point.world.x, -point.world.y)
+    end
+    
+    if Zoom.currentTransform then
+        translate(Zoom.currentTransform.world.x, Zoom.currentTransform.world.y)
+        
+        scale(Zoom.currentTransform.scale)
+        rotate(Zoom.currentTransform.rotate)
+        
+        translate(-Zoom.currentTransform.world.x, -Zoom.currentTransform.world.y)
     end
 end
 

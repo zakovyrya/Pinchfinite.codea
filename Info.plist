@@ -7,7 +7,10 @@
 	<key>Buffer Order</key>
 	<array>
 		<string>Main</string>
+		<string>Touches</string>
+		<string>Draw</string>
 		<string>Zoom</string>
+		<string>Dots</string>
 	</array>
 	<key>Description</key>
 	<string>No description available</string>
