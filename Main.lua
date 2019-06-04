@@ -1,4 +1,4 @@
--- zoom
+-- Pinch
 
 function setup()
     displayMode(STANDARD)
