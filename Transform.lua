@@ -13,7 +13,8 @@ do
     function pinch.condition()
         local count = Touches.count()
 
-        if count ~= 2 then      
+        if count ~= 2 then
+            -- Save current transform when user releases two-finger pinch 
             if Transform.current then
                 local point = Transform.point()
                 
@@ -45,6 +46,12 @@ do
         if not Transform.current then
             Transform.current = Transform.point()
             
+            -- The first touch sets the anchor point from which all transforms are calculated:
+            -- Rotate: difference between initial pinch angle
+            -- Scale: initial pinch distance is set to scale == 1, subsequent changes in distance
+            --     change the scale value
+            -- Translate: The difference between the initial position of the first pinch touch
+            --     and the updated position of that touch as it moves
             if not Transform.current.anchor then
                 Transform.current.anchor = Transform.point()
                 
@@ -84,9 +91,10 @@ end
 
 function Transform.screenToWorld(touch)   
     for _, point in ipairs(Transform.points) do
+        -- Remove previous translations
         touch = touch - point.translate
         
-        -- Remove rotations around all previous transform points
+        -- Remove previous rotations
         local radius = vec2(point.pos.x - touch.x, point.pos.y - touch.y)
         
         touch.x = point.pos.x - ((math.cos(math.rad(point.rotate)) * radius.x) +
@@ -94,7 +102,7 @@ function Transform.screenToWorld(touch)
         touch.y = point.pos.y - ((math.cos(math.rad(point.rotate)) * radius.y) -
             (math.sin(math.rad(point.rotate)) * radius.x))
         
-        -- Remove all previous scales   
+        -- Remove previous scales   
         touch = point.pos + ((touch - point.pos) / point.scale)
     end
     
