@@ -1,7 +1,6 @@
 Touches = {}
 
 Touches.active = {}
-Touches.current = nil
 
 -- Each subscriber requires condition() and notify() functions
 Touches.subscribers = {}
@@ -13,8 +12,6 @@ function Touches.register(touch)
     elseif touch.state == ENDED or touch.state == CANCELLED then
         Touches.active[touch.id] = nil
     end
-    
-    Touches.current = touch
 
     Touches.notify()
 end
@@ -27,16 +24,6 @@ function Touches.count()
     end
 
     return count
-end
-
-function Touches.activeStates()
-    local states = {}
-    
-    for _, touch in pairs(Touches.active) do
-        table.insert(states, touch.state)
-    end
-
-    return states
 end
 
 function Touches.notify()

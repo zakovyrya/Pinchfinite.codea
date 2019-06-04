@@ -1,13 +1,13 @@
 -- zoom
 
 function setup()
-    displayMode(FULLSCREEN_NO_BUTTONS)
+    displayMode(STANDARD)
 end
 
 function draw()
     Draw.update()
 end
 
-function touched(touch)
+function touched(touch)   
     Touches.register(touch)
 end
