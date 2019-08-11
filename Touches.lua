@@ -16,9 +16,10 @@ function Touches.register(touch)
     Touches.notify()
 end
 
+-- Return the number of active touces
 function Touches.count()
     local count = 0
-    
+        
     for _, _ in pairs(Touches.active) do
         count = count + 1
     end
@@ -28,7 +29,7 @@ end
 
 function Touches.notify()
     for _, subscriber in ipairs(Touches.subscribers) do
-        if subscriber.condition() == true then
+        if subscriber.enabled() == true and subscriber.condition() == true then
             subscriber.notify()
         end
     end

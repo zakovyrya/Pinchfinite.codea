@@ -1,14 +1,15 @@
 Transform = {}
 
-function Transform.point()
-    return {pos = vec2(0, 0), rotate = 0, scale = 1, translate = vec2(0, 0)}
-end
-
 Transform.current = nil
+Transform.modes = nil
 Transform.points = {}
 
 do
     pinch = {}
+    
+    function pinch.enabled()
+        return true
+    end
     
     function pinch.condition()
         local count = Touches.count()
@@ -19,10 +20,19 @@ do
                 local point = Transform.point()
                 
                 point.pos = Transform.current.anchor.pos
-                point.rotate = Transform.current.rotate
-                point.scale = Transform.current.scale
-                point.translate = Transform.current.translate
                 
+                if Transform.modes.rotate == true then
+                    point.rotate = Transform.current.rotate
+                end
+                
+                if Transform.modes.scale == true then
+                    point.scale = Transform.current.scale
+                end
+                
+                if Transform.modes.translate == true then
+                    point.translate = Transform.current.translate
+                end
+                    
                 table.insert(Transform.points, point)
             end
 
@@ -55,36 +65,65 @@ do
             if not Transform.current.anchor then
                 Transform.current.anchor = Transform.point()
                 
+                
                 Transform.current.anchor.pos = touches[1]
                 Transform.current.anchor.dist = dist        
                 Transform.current.anchor.angle = angle
             end
         end
         
-        Transform.current.rotate = -(Transform.current.anchor.angle - angle)
-        Transform.current.scale = dist / Transform.current.anchor.dist
-        Transform.current.translate = touches[1] - Transform.current.anchor.pos
+        if Transform.modes.rotate == true then
+            Transform.current.rotate = -(Transform.current.anchor.angle - angle)
+        end
+        
+        if Transform.modes.scale == true then
+            Transform.current.scale = dist / Transform.current.anchor.dist
+        end
+        
+        if Transform.modes.translate == true then
+            Transform.current.translate = touches[1] - Transform.current.anchor.pos
+        end
     end
     
     table.insert(Touches.subscribers, pinch)
 end
 
-function Transform.draw()         
+function Transform.point()
+    return {pos = vec2(0, 0), rotate = 0, scale = 1, translate = vec2(0, 0)}
+end
+
+function Transform.draw(modes)
+    Transform.modes = modes
+          
     for _, point in ipairs(Transform.points) do
-        translate(point.translate.x, point.translate.y)
+        if Transform.modes.translate == true then
+            translate(point.translate.x, point.translate.y)
+        end
             
         translate(point.pos.x, point.pos.y)
-            rotate(point.rotate)
-            scale(point.scale)
+            if Transform.modes.rotate == true then
+                rotate(point.rotate)
+            end
+        
+            if Transform.modes.scale == true then
+                scale(point.scale)
+            end
         translate(-point.pos.x, -point.pos.y)
     end
 
     if Transform.current then
-        translate(Transform.current.translate.x, Transform.current.translate.y)
+        if Transform.modes.translate == true then
+            translate(Transform.current.translate.x, Transform.current.translate.y)
+        end
 
         translate(Transform.current.anchor.pos.x, Transform.current.anchor.pos.y)
-            rotate(Transform.current.rotate)
-            scale(Transform.current.scale)
+            if Transform.modes.rotate == true then
+                rotate(Transform.current.rotate)
+            end
+        
+            if Transform.modes.scale == true then
+                scale(Transform.current.scale)
+            end
         translate(-Transform.current.anchor.pos.x, -Transform.current.anchor.pos.y)
     end
 end
@@ -92,18 +131,24 @@ end
 function Transform.screenToWorld(touch)   
     for _, point in ipairs(Transform.points) do
         -- Remove previous translations
-        touch = touch - point.translate
+        if Transform.modes.translate == true then
+            touch = touch - point.translate
+        end
         
         -- Remove previous rotations
-        local radius = vec2(point.pos.x - touch.x, point.pos.y - touch.y)
+        if Transform.modes.rotate == true then
+            local radius = vec2(point.pos.x - touch.x, point.pos.y - touch.y)
+            
+            touch.x = point.pos.x - ((math.cos(math.rad(point.rotate)) * radius.x) +
+                (math.sin(math.rad(point.rotate)) * radius.y))
+            touch.y = point.pos.y - ((math.cos(math.rad(point.rotate)) * radius.y) -
+                (math.sin(math.rad(point.rotate)) * radius.x))
+        end
         
-        touch.x = point.pos.x - ((math.cos(math.rad(point.rotate)) * radius.x) +
-            (math.sin(math.rad(point.rotate)) * radius.y))
-        touch.y = point.pos.y - ((math.cos(math.rad(point.rotate)) * radius.y) -
-            (math.sin(math.rad(point.rotate)) * radius.x))
-        
-        -- Remove previous scales   
-        touch = point.pos + ((touch - point.pos) / point.scale)
+        -- Remove previous scales
+        if Transform.modes.scale == true then
+            touch = point.pos + ((touch - point.pos) / point.scale)
+        end
     end
     
     return touch
