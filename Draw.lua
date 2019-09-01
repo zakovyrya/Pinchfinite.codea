@@ -1,13 +1,10 @@
 Draw = {}
 
+Draw.background = color(47, 47, 47, 255)
 Draw.queue = {}
 
 function Draw.update()
-    background(47, 47, 47, 255)
+    background(Draw.background)
     
-    Transform.draw{rotate = true, scale = true, translate = true}
-    
-    for _, queued in ipairs(Draw.queue) do
-        queued()
-    end
+    Transform.draw({rotate = true, scale = true, translate = true})
 end

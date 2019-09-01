@@ -1,8 +1,6 @@
 Transform = {}
 
-Transform.current = nil
 Transform.modes = nil
-Transform.points = {}
 
 do
     pinch = {}
@@ -16,72 +14,75 @@ do
 
         if count ~= 2 then
             -- Save current transform when user releases two-finger pinch 
-            if Transform.current then
-                local point = Transform.point()
-                
-                point.pos = Transform.current.anchor.pos
-                
-                if Transform.modes.rotate == true then
-                    point.rotate = Transform.current.rotate
+            for _, layer in ipairs(Layers) do
+                if layer.current then
+                    local point = Transform.point()
+                        
+                    point.pos = layer.current.anchor.pos
+                        
+                    if Transform.modes.rotate == true then
+                        point.rotate = layer.current.rotate
+                    end
+                        
+                    if Transform.modes.scale == true then
+                        point.scale = layer.current.scale
+                    end
+                        
+                    if Transform.modes.translate == true then
+                        point.translate = layer.current.translate
+                    end
+                            
+                    table.insert(layer.points, point)
                 end
                 
-                if Transform.modes.scale == true then
-                    point.scale = Transform.current.scale
-                end
-                
-                if Transform.modes.translate == true then
-                    point.translate = Transform.current.translate
-                end
-                    
-                table.insert(Transform.points, point)
+                layer.current = nil
             end
-
-            Transform.current = nil
         end
         
         return count == 2
     end
     
     function pinch.notify()
-        local touches = {}
-        for _, touch in pairs(Touches.active) do
-            table.insert(touches, Transform.screenToWorld(vec2(touch.x, touch.y)))
-        end
-
-        local opposite = touches[2].y - touches[1].y
-        local adjacent = touches[2].x - touches[1].x
-        local dist = touches[1]:dist(touches[2])
-        local angle = Transform.to360(math.deg(math.asin(opposite / dist)), adjacent)
-
-        if not Transform.current then
-            Transform.current = Transform.point()
-            
-            -- The first touch sets the anchor point from which all transforms are calculated:
-            -- Rotate: difference between initial pinch angle
-            -- Scale: initial pinch distance is set to scale == 1, subsequent changes in distance
-            --     change the scale value
-            -- Translate: The difference between the initial position of the first pinch touch
-            --     and the updated position of that touch as it moves
-            if not Transform.current.anchor then
-                Transform.current.anchor = Transform.point()
-                
-                
-                Transform.current.anchor.pos = touches[1]
-                Transform.current.anchor.dist = dist        
-                Transform.current.anchor.angle = angle
+        for _, layer in ipairs(Layers) do
+            local touches = {}
+            for _, touch in pairs(Touches.active) do
+                table.insert(touches, Transform.screenToWorld(layer, vec2(touch.x, touch.y)))
             end
-        end
-        
-        if Transform.modes.rotate == true then
-            Transform.current.rotate = -(Transform.current.anchor.angle - angle)
-        end
-        
-        if Transform.modes.scale == true then
-            Transform.current.scale = dist / Transform.current.anchor.dist
-        end
-        
-        if Transform.modes.translate == true then
-            Transform.current.translate = touches[1] - Transform.current.anchor.pos
+            
+            local opposite = touches[2].y - touches[1].y
+            local adjacent = touches[2].x - touches[1].x
+            local dist = touches[1]:dist(touches[2])
+            local angle = Transform.to360(math.deg(math.asin(opposite / dist)), adjacent)
+            
+            if not layer.current then
+                layer.current = Transform.point()
+                
+                -- The first touch sets the anchor point from which all transforms are calculated:
+                -- Rotate: difference between initial pinch angle
+                -- Scale: initial pinch distance is set to scale == 1, subsequent changes in distance
+                --     change the scale value
+                -- Translate: The difference between the initial position of the first pinch touch
+                --     and the updated position of that touch as it moves
+                if not layer.current.anchor then
+                    layer.current.anchor = Transform.point()
+                    
+                    layer.current.anchor.pos = touches[1]
+                    layer.current.anchor.dist = dist        
+                    layer.current.anchor.angle = angle
+                end
+            end
+            
+            if Transform.modes.rotate == true then
+                layer.current.rotate = -(layer.current.anchor.angle - angle)
+            end
+            
+            if Transform.modes.scale == true then
+                layer.current.scale = layer.scale(dist / layer.current.anchor.dist)
+            end
+            
+            if Transform.modes.translate == true then
+                layer.current.translate = layer.translate(touches[1] - layer.current.anchor.pos)
+            end
         end
     end
     
@@ -89,47 +90,57 @@ do
 end
 
 function Transform.point()
-    return {pos = vec2(0, 0), rotate = 0, scale = 1, translate = vec2(0, 0)}
+    return {pos = vec2(WIDTH / 2, HEIGHT / 2), rotate = 0, scale = 1, translate = vec2(0, 0)}
 end
 
 function Transform.draw(modes)
     Transform.modes = modes
-          
-    for _, point in ipairs(Transform.points) do
-        if Transform.modes.translate == true then
-            translate(point.translate.x, point.translate.y)
-        end
+    totalScale = 1
+
+    for _, layer in ipairs(Layers) do
+        for i, point in ipairs(layer.points) do
+            if Transform.modes.translate == true then
+                translate(point.translate.x, point.translate.y)
+            end
+                
+            translate(point.pos.x, point.pos.y)
+                if Transform.modes.rotate == true then
+                    rotate(point.rotate)
+                end
             
-        translate(point.pos.x, point.pos.y)
-            if Transform.modes.rotate == true then
-                rotate(point.rotate)
-            end
+                if Transform.modes.scale == true then
+                    scale(point.scale)
+                    totalScale = totalScale * point.scale
+                end
+            translate(-point.pos.x, -point.pos.y)
+        end
         
-            if Transform.modes.scale == true then
-                scale(point.scale)
+        if layer.current then
+            if Transform.modes.translate == true then
+                translate(layer.current.translate.x, layer.current.translate.y)
             end
-        translate(-point.pos.x, -point.pos.y)
-    end
-
-    if Transform.current then
-        if Transform.modes.translate == true then
-            translate(Transform.current.translate.x, Transform.current.translate.y)
+            
+            translate(layer.current.anchor.pos.x, layer.current.anchor.pos.y)
+                if Transform.modes.rotate == true then
+                    rotate(layer.current.rotate)
+                end
+            
+                if Transform.modes.scale == true then
+                    scale(layer.current.scale)
+                    totalScale = totalScale * layer.current.scale
+                end
+            translate(-layer.current.anchor.pos.x, -layer.current.anchor.pos.y)
         end
 
-        translate(Transform.current.anchor.pos.x, Transform.current.anchor.pos.y)
-            if Transform.modes.rotate == true then
-                rotate(Transform.current.rotate)
-            end
-        
-            if Transform.modes.scale == true then
-                scale(Transform.current.scale)
-            end
-        translate(-Transform.current.anchor.pos.x, -Transform.current.anchor.pos.y)
+        layer.draw(totalScale, layer.col)
     end
+    
+    -- Conditionally add/subtract layers
+    Layers.addSubtract(totalScale)
 end
 
-function Transform.screenToWorld(touch)   
-    for _, point in ipairs(Transform.points) do
+function Transform.screenToWorld(layer, touch)   
+    for _, point in ipairs(layer.points) do
         -- Remove previous translations
         if Transform.modes.translate == true then
             touch = touch - point.translate
