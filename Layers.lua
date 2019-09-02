@@ -1,4 +1,5 @@
 Layers = {}
+Layers.past = {}
 
 -- New layer constructor
 function Layers.new(p)
@@ -9,14 +10,26 @@ function Layers.new(p)
         translate = function(v) return v end, draw = dots, col = setColors()}
 end
 
+function Layers.totalScale(layer)
+    local totalScale = 1
+    for _, point in ipairs(layer.points) do
+        totalScale = totalScale * point.scale
+    end
+    if layer.current then
+        totalScale = totalScale * layer.current.scale
+    end
+    
+    return totalScale 
+end
+
 function Layers.addSubtract(totalScale)
     -- Add layer
-    if totalScale > 2 and #Layers <= 2 then
+    if Layers.totalScale(Layers[1]) > 2 then
         table.insert(Layers, 1, Layers.new())
     end
     
     -- Remove layer
-    if totalScale > 10 and #Layers > 1 then
+    if totalScale > 10 and #Layers > 10 then
         table.remove(Layers, #Layers)
     end
 end
